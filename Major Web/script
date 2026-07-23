@@ -1,0 +1,456 @@
+<script>
+    // --- ÇEVİRİ SÖZLÜĞÜ (i18n) ---
+    let currentLang = 'tr';
+    const langCodes = ['tr', 'en', 'bg'];
+    
+    const i18n = {
+        'tr': {
+            nav_home: "Ana Sayfa", nav_menu: "Menü", nav_events: "Etkinlikler", nav_res: "Rezervasyon",
+            title_upcoming: "Yaklaşan Etkinlikler", no_events: "Planlanan bir etkinlik bulunmamaktadır.",
+            title_calendar: "Etkinlik Takvimi",
+            res_title: "Rezervasyon Yap", res_name: "Ad Soyad", res_phone: "Telefon Numarası", 
+            res_date_text: "Tarih ve Saat Seçmek İçin Tıklayın", res_btn: "Rezervasyon Gönder",
+            res_people: "Kişi Sayısı Seçiniz", res_note: "İsteğe Bağlı Not...", no_event_day: "Seçilen günde etkinlik yok. (Normal Masa)",
+            footer_text: "© 2026 Major. Tüm hakları saklıdır.",
+            admin_cat_title: "[Admin] Kategori ve Ürün Ekle", cat_ph: "Yeni Kategori Adı", btn_add_cat: "Kategori Ekle",
+            prod_name_ph: "Ürün Adı", prod_desc_ph: "Ürün Açıklaması", prod_price_ph: "Fiyat", btn_add_prod: "Ürün Ekle",
+            admin_event_title: "[Admin] Etkinlik Ekle", event_name_ph: "Sanatçı / Etkinlik Adı", 
+            event_date_text: "Etkinlik Tarih ve Saati Seçiniz", event_img_label: "Etkinlik Fotoğrafı Yükle:", btn_add_event: "Etkinlik Ata",
+            admin_pending: "Bekleyen Talepler", admin_approved: "Onaylanan Masalar", admin_people: "Kişi", admin_note: "Not",
+            contact_title: "İletişim", contact_phone: "Telefon:", contact_address: "Adres:", contact_email: "E-posta:", contact_note: "Sosyal medya hesaplarımızdan da bize ulaşabilirsiniz."
+        },
+        'en': {
+            nav_home: "Home", nav_menu: "Menu", nav_events: "Events", nav_res: "Reservation",
+            title_upcoming: "Upcoming Events", no_events: "No upcoming events scheduled.",
+            title_calendar: "Event Calendar",
+            res_title: "Make a Reservation", res_name: "Full Name", res_phone: "Phone Number", 
+            res_date_text: "Click to Select Date and Time", res_btn: "Submit Reservation",
+            res_people: "Select Number of People", res_note: "Optional Note...", no_event_day: "No event on selected day. (Regular Table)",
+            footer_text: "© 2026 Major. All rights reserved.",
+            admin_cat_title: "[Admin] Add Category & Product", cat_ph: "New Category Name", btn_add_cat: "Add Category",
+            prod_name_ph: "Product Name", prod_desc_ph: "Product Description", prod_price_ph: "Price", btn_add_prod: "Add Product",
+            admin_event_title: "[Admin] Add Event", event_name_ph: "Artist / Event Name", 
+            event_date_text: "Select Event Date & Time", event_img_label: "Upload Event Photo:", btn_add_event: "Assign Event",
+            admin_pending: "Pending Requests", admin_approved: "Approved Tables", admin_people: "People", admin_note: "Note",
+            contact_title: "Contact", contact_phone: "Phone:", contact_address: "Address:", contact_email: "Email:", contact_note: "You can also reach us via our social media accounts."
+        },
+        'bg': {
+            nav_home: "Начало", nav_menu: "Меню", nav_events: "Събития", nav_res: "Резервация",
+            title_upcoming: "Предстоящи събития", no_events: "Няма планирани предстоящи събития.",
+            title_calendar: "Календар на събитията",
+            res_title: "Направете резервация", res_name: "Име и Фамилия", res_phone: "Телефонен номер", 
+            res_date_text: "Кликнете за избор на дата и час", res_btn: "Изпрати резервация",
+            res_people: "Изберете брой хора", res_note: "Допълнителна бележка...", no_event_day: "Няма събитие в избрания ден. (Обикновена маса)",
+            footer_text: "© 2026 Major. Всички права запазени.",
+            admin_cat_title: "[Админ] Добавяне на Категория и Продукт", cat_ph: "Име на нова категория", btn_add_cat: "Добави категория",
+            prod_name_ph: "Име на продукта", prod_desc_ph: "Описание на продукта", prod_price_ph: "Цена", btn_add_prod: "Добави продукт",
+            admin_event_title: "[Админ] Добави събитие", event_name_ph: "Артист / Име на събитието", 
+            event_date_text: "Изберете дата и час", event_img_label: "Качете снимка на събитието:", btn_add_event: "Запази събитие",
+            admin_pending: "Чакащи заявки", admin_approved: "Одобрени маси", admin_people: "Хора", admin_note: "Бележка",
+            contact_title: "Контакт", contact_phone: "Телефон:", contact_address: "Адрес:", contact_email: "Имейл:", contact_note: "Можете да се свържете с нас и чрез социалните мрежи."
+        }
+    };
+
+    function t(key) { return i18n[currentLang][key] || key; }
+
+    function updateUITexts() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = t(key);
+            else el.innerText = t(key);
+        });
+        renderHome();
+        renderCalendar();
+        if(isAdmin) renderAdminReservations();
+    }
+
+    function changeLang(element, index) {
+        document.querySelectorAll('.lang-opt').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        document.getElementById('langSlider').style.transform = `translateX(${index * 32}px)`;
+        currentLang = langCodes[index];
+        updateUITexts();
+        
+        if(!document.getElementById('resDate').value) document.getElementById('resDate_display').innerText = t('res_date_text');
+        if(!document.getElementById('eventDate').value) document.getElementById('eventDate_display').innerText = t('event_date_text');
+    }
+
+    function showContactModal() {
+        let html = `
+            <div style="text-align: left; line-height: 2.2; color: var(--text-muted); font-size: 15px; padding: 10px;">
+                <p><strong style="color: white;">📞 ${t('contact_phone')}</strong> <a href="tel:+905421623939" style="color: var(--vintage-red); text-decoration: none; font-weight: bold;">+90 542 162 39 39</a></p>
+                <p><strong style="color: white;">📍 ${t('contact_address')}</strong> Kocasinan, Kereviz Sk. No:13, 39780 Lüleburgaz/Kırklareli</p>
+                <p><strong style="color: white;">✉️ ${t('contact_email')}</strong> info@majorpub.com</p>
+                <p style="font-size: 13px; margin-top: 15px; text-align: center; color: gray;">${t('contact_note')}</p>
+            </div>`;
+        showSysModal(t('contact_title'), html, [{ text: "OK", class: "btn-admin", onClick: () => closeSysModal(true) }]);
+    }
+
+    // --- KİŞİ SEÇİM FONKSİYONU ---
+    function selectPeople(val, btnEl) {
+        document.getElementById('resPeople').value = val;
+        document.querySelectorAll('.ppl-btn').forEach(b => {
+            b.style.backgroundColor = '#333';
+            b.style.boxShadow = 'none';
+        });
+        btnEl.style.backgroundColor = 'var(--vintage-red)';
+        btnEl.style.boxShadow = '0 0 10px rgba(204,0,0,0.5)';
+    }
+
+    // --- VERİ MODELİ ---
+    let db = JSON.parse(localStorage.getItem('majorPubDB_v10')) || {
+        categories: ['Biralar', 'Kokteyller', 'Atıştırmalıklar', 'Yüksek Alkollü', 'Alkolsüz İçecekler'],
+        products: [
+            { id: 1, cat: 'Biralar', name: 'Efes Tombul 33cl', desc: 'Klasik Efes Pilsen’in 33 cl “tombul” şişe formu. Orta gövdeli, hafif acılıkta, yaklaşık %5 alkol oranlı, dengeli Türk pilsneri', price: '190' },
+            { id: 2, cat: 'Biralar', name: 'Efes Malt 50cl', desc: 'Türkiye üretimi, Anadolu Efes imzalı %100 malt lager bira. Yaklaşık %5 alkol oranına sahip, malt aroması belirgin, yumuşak ve dengeli içimli, 50 cl şişe servis.', price: '250' },
+            { id: 3, cat: 'Biralar', name: 'Efes Green (Özel Seri) 50cl', desc: 'Özel seri Efes lager. Daha aromatik ve gövdeli bir içim sunar. Yaklaşık %5 civarı alkol oranına sahip, 50 cl şişe servis.', price: '260' },
+            { id: 4, cat: 'Biralar', name: 'Bomonti Filtresiz 50cl', desc: 'Türkiye üretimi, filtre edilmemiş, doğal bulanık görünümlü lager. Yaklaşık %4.8 alkol oranı, belirgin malt ve hafif şerbetçiotu aroması, 50 cl şişe.', price: '270'},
+            { id: 1, cat: 'Kokteyller', name: 'Margarita', desc: 'Tekila, limon suyu ve portakal likörü (triple sec) ile hazırlanan klasik Meksika kokteylidir.', price: '550'},
+            { id: 2, cat: 'Kokteyller', name: 'Sex on the Beach', desc: 'Votka, nar şurubu, portakal suyu (5 cl) ve limon suyu (1.5 cl) ile hazırlanan meyveli ve ferahlatıcı bir klasik.', price: '550'},
+            { id: 1, cat: 'Yüksek Alkollü', name: 'Chivas Regal Tek / Duble', desc: 'Yaklaşık 4/8 cl tek kadeh Chivas Regal viski servisi, sek veya buzlu.', price: '550 / 650' },
+            { id: 2, cat: 'Yüksek Alkollü', name: 'Jack Daniels Tek / Duble', desc: 'Yaklaşık 4/8 cl tek kadeh Jack Daniels viski servisi, sek veya buzlu.', price: '550 / 650'},
+            { id: 3, cat: 'Yüksek Alkollü', name: 'Absolut Vodka Tek / Duble', desc: 'Yaklaşık 4/8 cl tek kadeh Absolut Vodka shot servisi.', price: '450 / 550' },
+            { id: 1, cat: 'Atıştırmalıklar', name: 'Major Combo', desc: 'Soğan halkası, sosis, patates, tavuk parçaları.', price: '300' },
+            { id: 2, cat: 'Atıştırmalıklar', name: 'Bira Tabağı', desc: 'Soğan halkası, sosis, patates.', price: '250' },
+            { id: 3, cat: 'Atıştırmalıklar', name: 'Çerez Tabağı', desc: 'Karışık çerez tabağı.', price: '170' }
+        ],
+        events: [], reservations: []
+    };
+
+    // --- TARİH FORMATLAYICI ---
+    const aylarListesi = {
+        tr: ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"],
+        en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+        bg: ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"]
+    };
+    const gunlerListesi = {
+        tr: ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"],
+        en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        bg: ["Неделя", "Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота"]
+    };
+
+    function formatEventDate(dateStr, timeStr) {
+        if (!dateStr) return "";
+        const parts = dateStr.split('-'); 
+        if(parts.length !== 3) return timeStr ? `${dateStr} | ${timeStr}` : dateStr;
+        
+        const yil = parseInt(parts[0], 10);
+        const ayIndex = parseInt(parts[1], 10) - 1;
+        const gun = parseInt(parts[2], 10);
+        
+        const ay = aylarListesi[currentLang][ayIndex];
+        const dateObj = new Date(yil, ayIndex, gun);
+        const gunAdi = gunlerListesi[currentLang][dateObj.getDay()];
+        
+        if (timeStr) return `${gun} ${ay} ${gunAdi} ${yil} | ${timeStr.replace(':', '.')}`;
+        else return `${gun} ${ay} ${gunAdi} ${yil}`;
+    }
+
+    const iconDelete = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+    const iconEdit = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+    const iconSave = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>`;
+
+    let isAdmin = false;
+    let currentCategory = db.categories[0] || '';
+    function saveDB() { localStorage.setItem('majorPubDB_v10', JSON.stringify(db)); }
+
+    function showSysModal(title, bodyHtml, buttons) {
+        document.getElementById('sysModalTitle').innerText = title;
+        document.getElementById('sysModalBody').innerHTML = bodyHtml;
+        const footer = document.getElementById('sysModalFooter');
+        footer.innerHTML = '';
+        buttons.forEach(btnInfo => {
+            let btn = document.createElement('button');
+            btn.className = `btn ${btnInfo.class}`;
+            btn.style.flex = "1";
+            btn.innerHTML = btnInfo.text;
+            btn.onclick = btnInfo.onClick;
+            footer.appendChild(btn);
+        });
+        document.getElementById('sysModalOverlay').style.display = 'flex';
+    }
+    function closeSysModal(force) {
+        if(force === true || force.target === document.getElementById('sysModalOverlay')) {
+            document.getElementById('sysModalOverlay').style.display = 'none';
+        }
+    }
+    function sysAlert(msg, callback) {
+        showSysModal("!", `<p>${msg}</p>`, [{ text: "Onayla", class: "btn-primary", onClick: () => { closeSysModal(true); if(callback) callback(); } }]);
+    }
+    function sysConfirm(msg, onYes) {
+        showSysModal("Uyarı!", `<p>${msg}</p>`, [
+            { text: "İptal", class: "btn-admin", onClick: () => closeSysModal(true) },
+            { text: "Onayla", class: "btn-green", onClick: () => { closeSysModal(true); onYes(); } }
+        ]);
+    }
+
+    let selectedPickerDate = "";
+    function openCustomDatePicker(targetDateId, targetTimeId) {
+        let html = `
+            <div id="pickerGrid" class="calendar-grid" style="grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 20px;"></div>
+            <input type="time" id="pickerTime" value="20:00" style="margin:0;">
+        `;
+        showSysModal("", html, [
+            { text: "İptal", class: "btn-admin", onClick: () => closeSysModal(true) },
+            { text: "Onayla", class: "btn-green", onClick: () => {
+                let timeVal = document.getElementById('pickerTime').value;
+                if(!selectedPickerDate || !timeVal) return;
+                
+                document.getElementById(targetDateId).value = selectedPickerDate;
+                document.getElementById(targetTimeId).value = timeVal;
+                document.getElementById(targetDateId + '_display').innerText = formatEventDate(selectedPickerDate, timeVal);
+                document.getElementById(targetDateId + '_display').style.color = "white";
+                
+                if(targetDateId === 'resDate') checkEventForDate();
+                closeSysModal(true);
+            }}
+        ]);
+
+        const grid = document.getElementById('pickerGrid');
+        const dObj = new Date();
+        const year = dObj.getFullYear(), month = dObj.getMonth(), today = dObj.getDate();
+        const daysInMonth = new Date(year, month + 1, 0).getDate(); 
+        selectedPickerDate = "";
+
+        for(let i = 1; i <= daysInMonth; i++) {
+            let fullDate = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+            let isPast = i < today;
+            let div = document.createElement('div');
+            div.className = 'cal-day';
+            div.style = `aspect-ratio:1; display:flex; justify-content:center; align-items:center; font-size:15px; border-radius:10px; opacity:${isPast ? '0.3' : '1'}; cursor:${isPast ? 'not-allowed' : 'pointer'};`;
+            div.innerText = i;
+            if(!isPast) {
+                div.onclick = () => {
+                    document.querySelectorAll('#pickerGrid .cal-day').forEach(el => el.style.borderColor = 'transparent');
+                    div.style.borderColor = 'var(--vintage-red)';
+                    selectedPickerDate = fullDate;
+                };
+            }
+            grid.appendChild(div);
+        }
+    }
+
+    let logoTimer;
+    function handleLogoClick() { clearTimeout(logoTimer); logoTimer = setTimeout(() => { showSection('home'); }, 250); }
+    function handleLogoDblClick() {
+        clearTimeout(logoTimer); 
+        if(isAdmin) { isAdmin = false; renderAll(); } 
+        else {
+            let html = `<input type="text" id="adminUser" placeholder="Kullanıcı Adı"><input type="password" id="adminPass" placeholder="Şifre">`;
+            showSysModal("Admin", html, [
+                { text: "Vazgeç", class: "btn-admin", onClick: () => closeSysModal(true) },
+                { text: "Giriş", class: "btn-green", onClick: () => {
+                    if(document.getElementById('adminUser').value === 'admin' && document.getElementById('adminPass').value === 'admin') {
+                        isAdmin = true; closeSysModal(true); renderAll();
+                    }
+                }}
+            ]);
+        }
+    }
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        const activeNavBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.getAttribute('onclick').includes(id));
+        if(activeNavBtn) activeNavBtn.classList.add('active');
+        renderAll();
+    }
+
+    function renderAll() {
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+        document.getElementById('customerResView').style.display = isAdmin ? 'none' : 'flex';
+        document.getElementById('adminResControls').style.display = isAdmin ? 'block' : 'none';
+        renderMenu(); renderHome(); renderCalendar(); 
+        if(isAdmin) renderAdminReservations();
+    }
+
+    function renderMenu() {
+        const tabsDiv = document.getElementById('menuTabs'); tabsDiv.innerHTML = '';
+        db.categories.forEach(cat => {
+            let btn = document.createElement('button');
+            btn.className = `menu-tab ${cat === currentCategory ? 'active' : ''}`;
+            btn.innerHTML = `${cat}`;
+            if (isAdmin) btn.innerHTML += ` <span onclick="deleteCategory('${cat}'); event.stopPropagation();" style="margin-left:8px;"> ${iconDelete}</span>`;
+            btn.onclick = () => { currentCategory = cat; renderMenu(); };
+            tabsDiv.appendChild(btn);
+        });
+
+        const grid = document.getElementById('menuItemsGrid'); grid.innerHTML = '';
+        db.products.filter(p => p.cat === currentCategory).forEach(p => {
+            let price = p.price.trim(); if (!price.toUpperCase().endsWith('TL') && !price.endsWith('₺')) price += ' ₺';
+            let adminHtml = isAdmin ? `<div style="display:flex; gap:10px; margin-top:12px;"><button class="btn btn-admin" style="padding:6px 12px;" onclick="editProduct(${p.id})"> ${iconEdit}</button><button class="btn btn-danger" style="padding:6px 12px;" onclick="deleteProduct(${p.id})"> ${iconDelete}</button></div>` : '';
+            grid.innerHTML += `<div class="glass-item-card" style="align-items:flex-start;"><div style="flex:1;"><h3 style="font-size: 18px; color: var(--text-main);">${p.name}</h3><p style="font-size: 15px; color: gray ; margin-top:4px;">${p.desc}</p>${adminHtml}</div><div style="font-size: 18px; color: var(--text-main); margin-left: 20px; margin-top: 12px; white-space: nowrap;">${price}</div></div>`;
+        });
+        if(isAdmin) document.getElementById('categorySelect').innerHTML = db.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function addCategory() { let val = document.getElementById('newCategoryName').value.trim(); if(val && !db.categories.includes(val)) { db.categories.push(val); currentCategory = val; saveDB(); document.getElementById('newCategoryName').value = ''; renderMenu(); } }
+    function deleteCategory(catName) { sysConfirm("Kategoriyi Silmek İster Misiniz?", () => { db.categories = db.categories.filter(c => c !== catName); db.products = db.products.filter(p => p.cat !== catName); if(currentCategory === catName) currentCategory = db.categories[0] || ''; saveDB(); renderMenu(); }); }
+    function addProduct() { let cat = document.getElementById('categorySelect').value; let name = document.getElementById('productName').value.trim(), desc = document.getElementById('productDesc').value.trim(), price = document.getElementById('productPrice').value.trim(); if(name && price) { db.products.push({ id: Date.now(), cat, name, desc, price }); saveDB(); document.getElementById('productName').value=''; document.getElementById('productDesc').value=''; document.getElementById('productPrice').value=''; renderMenu(); } }
+    function deleteProduct(id) { sysConfirm("Ürünü Silmek İster Misiniz?", () => { db.products = db.products.filter(p => p.id !== id); saveDB(); renderMenu(); }); }
+    
+    function editProduct(id) {
+        let p = db.products.find(prod => prod.id === id); if(!p) return;
+        let html = `<input type="text" id="editPName" value="${p.name}"><input type="text" id="editPDesc" value="${p.desc}"><input type="text" id="editPPrice" value="${p.price}">`;
+        showSysModal("Edit", html, [{ text: "İptal", class: "btn-admin", onClick: () => closeSysModal(true) }, { text: "Onayla", class: "btn-green", onClick: () => { p.name = document.getElementById('editPName').value.trim(); p.desc = document.getElementById('editPDesc').value.trim(); p.price = document.getElementById('editPPrice').value.trim(); saveDB(); renderMenu(); closeSysModal(true); }}]);
+    }
+
+    function renderHome() {
+        let today = new Date().toISOString().split('T')[0];
+        const grid = document.getElementById('upcomingEventsGrid'); grid.innerHTML = '';
+        let futureEvents = db.events.filter(e => e.date >= today).sort((a,b) => new Date(a.date) - new Date(b.date));
+        
+        if (futureEvents.length === 0) grid.innerHTML = `<p style="grid-column: 1/-1; width: 100%; text-align:center; color: gray;">${t('no_events')}</p>`;
+        else futureEvents.forEach(ev => {
+            let imgHtml = ev.img ? `<img src="${ev.img}" style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:15px;">` : '';
+            grid.innerHTML += `<div class="event-card-home" onclick="openEventModal('${ev.id}')">${imgHtml}<h4 style="font-size: 18px;">${ev.name}</h4><p style="font-size: 14px; color: var(--text-muted); margin-top:5px;">${formatEventDate(ev.date, ev.time)}</p></div>`;
+        });
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+        const d = new Date(), year = d.getFullYear(), month = d.getMonth(), daysInMonth = new Date(year, month + 1, 0).getDate();
+        for(let i = 1; i <= daysInMonth; i++) {
+            let fullDate = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+            let ev = db.events.find(e => e.date === fullDate);
+            let bgStyle = ev && ev.img ? `background-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.3)), url('${ev.img}');` : '';
+            grid.innerHTML += `<div class="cal-day" onclick="handleDayClick('${fullDate}', ${ev ? `'${ev.id}'` : null})"><div class="cal-bg" style="${bgStyle}"></div><div class="day-num">${i}</div>${ev ? `<div style="position:absolute; bottom:12px; left:8px; z-index:2; font-size:15px; color:var(--text-main); font-weight:bold;">${ev.name}</div>` : ''}</div>`;
+        }
+    }
+
+    function addEvent() {
+        let name = document.getElementById('eventName').value.trim(), date = document.getElementById('eventDate').value, time = document.getElementById('eventTime').value;
+        let fileInput = document.getElementById('eventImage');
+        if(!name || !date || !time) return;
+        let evObj = { id: 'EV'+Date.now(), name, date, time, img: "" };
+        if(fileInput.files && fileInput.files[0]) {
+            let reader = new FileReader(); reader.onload = function(e) { evObj.img = e.target.result; db.events.push(evObj); saveDB(); renderAll(); }
+            reader.readAsDataURL(fileInput.files[0]);
+        } else { db.events.push(evObj); saveDB(); renderAll(); }
+    }
+
+    let selectedEventForRes = "";
+    function handleDayClick(date, eventId) {
+        if(eventId) openEventModal(eventId);
+        else if(date >= new Date().toISOString().split('T')[0]) {
+            showSection('reservation');
+            document.getElementById('resDate').value = date;
+            document.getElementById('resDate_display').innerText = formatEventDate(date, "");
+            document.getElementById('resDate_display').style.color = "white";
+            checkEventForDate();
+        }
+    }
+
+    function openEventModal(eventId) {
+        let ev = db.events.find(e => e.id === eventId); if(!ev) return;
+        selectedEventForRes = ev.date;
+        let imgHtml = ev.img ? `<img src="${ev.img}" style="width:100%; height:180px; object-fit:cover; border-radius:15px; margin-bottom:15px;">` : '';
+        let bodyHtml = `${imgHtml}<p style="color:var(--text-muted); font-size:16px; margin-bottom:20px;">${formatEventDate(ev.date, ev.time)}</p>`;
+        
+        let btns = [
+            { text: "İptal", class: "btn-admin", onClick: () => closeSysModal(true) }, 
+            { text: "Rezervasyon Yap", class: "btn-green", onClick: () => { closeSysModal(true); showSection('reservation'); document.getElementById('resDate').value = ev.date; document.getElementById('resDate_display').innerText = formatEventDate(ev.date, ""); document.getElementById('resDate_display').style.color = "white"; checkEventForDate(); }}
+        ];
+        if(isAdmin) btns.push({ text: "Sil", class: "btn-danger", onClick: () => { closeSysModal(true); db.events = db.events.filter(e => e.id !== ev.id); saveDB(); renderAll(); } });
+        showSysModal(ev.name, bodyHtml, btns);
+    }
+
+    // ETKİNLİK BALONUNU DOLDURMA
+    function checkEventForDate() {
+        let date = document.getElementById('resDate').value;
+        let bubble = document.getElementById('resEventBubble');
+        if(!date) { bubble.style.display = 'none'; return; }
+        
+        let ev = db.events.find(e => e.date === date);
+        if(ev) {
+            let imgHtml = ev.img ? `<img src="${ev.img}" style="width:50px; height:50px; border-radius:10px; object-fit:cover;">` : `<div style="width:50px; height:50px; border-radius:10px; background:#333; display:flex; align-items:center; justify-content:center; font-size:20px;">🎸</div>`;
+            bubble.innerHTML = `${imgHtml}<div style="flex:1; text-align:left; display:flex; flex-direction:column; justify-content:center;"><h4 style="font-size:15px; margin-bottom:0; color:white;">${ev.name}</h4><span style="font-size:12px; color:var(--text-muted);">${formatEventDate(ev.date, ev.time)}</span></div>`;
+            bubble.style.display = 'flex';
+        } else {
+            bubble.innerHTML = `<div style="width:100%; text-align:center; font-size:14px; color:gray;">${t('no_event_day')}</div>`;
+            bubble.style.display = 'flex';
+        }
+    }
+
+    function submitReservation() {
+        let name = document.getElementById('resName').value.trim();
+        let phone = document.getElementById('resPhone').value.trim();
+        let date = document.getElementById('resDate').value;
+        let time = document.getElementById('resTime').value;
+        let people = document.getElementById('resPeople').value;
+        let note = document.getElementById('resNote').value.trim();
+        
+        // Boş alan kontrolü ve dil bazlı uyarı
+        if(!name || !phone || !date || !time) {
+            let errorMsg = currentLang === 'en' ? "Please fill in all required fields." : 
+                           currentLang === 'bg' ? "Моля, попълнете всички задължителни полета." : 
+                           "Lütfen tüm zorunlu alanları doldurunuz.";
+            sysAlert(errorMsg);
+            return;
+        }
+
+        let eventDetail = db.events.find(e => e.date === date)?.name || '-';
+        db.reservations.push({ id: Date.now(), name, phone, date, time, eventDetail, people, note, status: 'pending' }); 
+        saveDB(); 
+        
+        // Başarı mesajı (Seçili dile göre otomatik değişir)
+        let successMsg = currentLang === 'en' ? "Your request has been successfully received. We will contact you shortly." : 
+                         currentLang === 'bg' ? "Вашата заявка е получена успешно. Ще се свържем с вас скоро." : 
+                         "Talebiniz başarıyla alındı. Tarafınıza dönüş sağlanacaktır.";
+
+        // Başarı Pop-up'ı ve ardından formu temizleme
+        sysAlert(successMsg, () => {
+            document.getElementById('resName').value = ''; 
+            document.getElementById('resPhone').value = ''; 
+            document.getElementById('resDate').value = ''; 
+            document.getElementById('resTime').value = '';
+            document.getElementById('resNote').value = '';
+            document.getElementById('resDate_display').innerText = t('res_date_text'); 
+            document.getElementById('resDate_display').style.color = 'gray'; 
+            document.getElementById('resEventBubble').style.display = 'none';
+            
+            // Kişiyi Varsayılana (2) döndür
+            selectPeople('2', document.querySelectorAll('.ppl-btn')[1]);
+        });
+    }
+
+    function renderAdminReservations() {
+        let pending = document.getElementById('pendingReservations'); let approved = document.getElementById('approvedReservations');
+        pending.innerHTML = ''; approved.innerHTML = '';
+        db.reservations.forEach(r => {
+            let noteHtml = r.note ? `<p style="font-size:14px; color:#ffaaaa;">${t('admin_note')}: ${r.note}</p>` : '';
+            let cardHtml = `<div class="glass-item-card" style="flex-direction:column; align-items:flex-start;">
+                <h4 style="font-size:18px;">${r.name}</h4>
+                <p style="font-size:14px; color:var(--text-muted); margin-top:5px;">Tel: ${r.phone}</p>
+                <p style="font-size:14px; color:var(--text-muted);">Tarih: ${formatEventDate(r.date, r.time)}</p>
+                <p style="font-size:14px; color:var(--text-muted);">${t('admin_people')}: ${r.people || '2'} | Etkinlik: ${r.eventDetail}</p>
+                ${noteHtml}
+                ${r.status === 'pending' ? `<div style="margin-top:15px; display:flex; gap:10px; width:100%;"><button class="btn btn-green" style="flex:1;" onclick="approveRes(${r.id})">Onayla</button><button class="btn btn-danger" style="flex:1;" onclick="rejectRes(${r.id})">Reddet</button></div>` : `<button class="btn btn-danger" style="margin-top:15px; width:100%;" onclick="deleteApprovedRes(${r.id})">Sil</button>`}</div>`;
+            if(r.status === 'pending') pending.innerHTML += cardHtml; else if(r.status === 'approved') approved.innerHTML += cardHtml;
+        });
+    }
+
+   function approveRes(id) { 
+        let res = db.reservations.find(r => r.id===id); 
+        if(res){ res.status='approved'; saveDB(); renderAdminReservations(); } 
+    }
+    
+    function deleteApprovedRes(id) { 
+        sysConfirm("Onaylanmış bu masayı silmek istediğinize emin misiniz?", () => { 
+            db.reservations = db.reservations.filter(r => r.id !== id); 
+            saveDB(); 
+            renderAdminReservations(); 
+        }); 
+    }
+    
+    function rejectRes(id) { 
+        sysConfirm("Bu rezervasyonu reddetmek istiyor musunuz?", () => { 
+            db.reservations = db.reservations.filter(r => r.id !== id); 
+            saveDB(); 
+            renderAdminReservations(); 
+        }); 
+    }
+
+    renderAll();
+</script>
