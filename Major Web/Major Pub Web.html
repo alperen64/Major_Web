@@ -812,17 +812,43 @@
 
     function renderAdminReservations() {
         let pending = document.getElementById('pendingReservations'); let approved = document.getElementById('approvedReservations');
-        pending.innerHTML = ''; approved.innerHTML = '';
+        pending.replaceChildren(); approved.replaceChildren();
         db.reservations.forEach(r => {
-            let noteHtml = r.note ? `<p style="font-size:14px; color:#ffaaaa;">${t('admin_note')}: ${r.note}</p>` : '';
-            let cardHtml = `<div class="glass-item-card" style="flex-direction:column; align-items:flex-start;">
-                <h4 style="font-size:18px;">${r.name}</h4>
-                <p style="font-size:14px; color:var(--text-muted); margin-top:5px;">Tel: ${r.phone}</p>
-                <p style="font-size:14px; color:var(--text-muted);">Tarih: ${formatEventDate(r.date, r.time)}</p>
-                <p style="font-size:14px; color:var(--text-muted);">${t('admin_people')}: ${r.people || '2'} | Etkinlik: ${r.eventDetail}</p>
-                ${noteHtml}
-                ${r.status === 'pending' ? `<div style="margin-top:15px; display:flex; gap:10px; width:100%;"><button class="btn btn-green" style="flex:1;" onclick="approveRes(${r.id})">Onayla</button><button class="btn btn-danger" style="flex:1;" onclick="rejectRes(${r.id})">Reddet</button></div>` : `<button class="btn btn-danger" style="margin-top:15px; width:100%;" onclick="deleteApprovedRes(${r.id})">Sil</button>`}</div>`;
-            if(r.status === 'pending') pending.innerHTML += cardHtml; else if(r.status === 'approved') approved.innerHTML += cardHtml;
+            if (r.status !== 'pending' && r.status !== 'approved') return;
+            const card = document.createElement('div');
+            card.className = 'glass-item-card';
+            card.style.cssText = 'flex-direction:column; align-items:flex-start;';
+            const text = (tag, value, style) => {
+                const element = document.createElement(tag);
+                element.textContent = String(value ?? '');
+                element.style.cssText = style;
+                card.appendChild(element);
+            };
+            text('h4', r.name, 'font-size:18px;');
+            text('p', `Tel: ${r.phone}`, 'font-size:14px; color:var(--text-muted); margin-top:5px;');
+            text('p', `Tarih: ${formatEventDate(r.date, r.time)}`, 'font-size:14px; color:var(--text-muted);');
+            text('p', `${t('admin_people')}: ${r.people || '2'} | Etkinlik: ${r.eventDetail}`, 'font-size:14px; color:var(--text-muted);');
+            if (r.note) text('p', `${t('admin_note')}: ${r.note}`, 'font-size:14px; color:#ffaaaa;');
+            const action = (container, label, className, style, callback) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = className;
+                button.style.cssText = style;
+                button.textContent = label;
+                button.addEventListener('click', callback);
+                container.appendChild(button);
+            };
+            if (r.status === 'pending') {
+                const buttons = document.createElement('div');
+                buttons.style.cssText = 'margin-top:15px; display:flex; gap:10px; width:100%;';
+                action(buttons, 'Onayla', 'btn btn-green', 'flex:1;', () => approveRes(r.id));
+                action(buttons, 'Reddet', 'btn btn-danger', 'flex:1;', () => rejectRes(r.id));
+                card.appendChild(buttons);
+                pending.appendChild(card);
+            } else {
+                action(card, 'Sil', 'btn btn-danger', 'margin-top:15px; width:100%;', () => deleteApprovedRes(r.id));
+                approved.appendChild(card);
+            }
         });
     }
 
